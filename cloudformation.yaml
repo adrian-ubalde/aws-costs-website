@@ -28,7 +28,7 @@ Resources:
           artifacts:
             baseDirectory: source/
             files:
-              - '*'
+              - '**/*'
       IAMServiceRole: !GetAtt AmplifyRole.Arn
 
   MainBranch:
