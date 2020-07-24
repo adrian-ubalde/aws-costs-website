@@ -1,0 +1,30 @@
+name: Deploy Website
+
+on:
+  push:
+    paths:
+    - "cloudformation.yaml"
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_DEPLOYMENT_USER_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_DEPLOYMENT_USER_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-2
+    - name: Set Repository URL
+      run: echo "::set-env name=REPOSITORY_URL::$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+    - name: Deploy to AWS CloudFormation
+      uses: aws-actions/aws-cloudformation-github-deploy@v1
+      with:
+        name: aws-costs-website
+        template: cloudformation.yaml
+        parameter-overrides: "OauthToken=${{ secrets.WEBSITE_SOURCE_CONTROL_OAUTH_TOKEN }},Repository=${{ env.REPOSITORY_URL }},Domain=thesmartsuperlist.com"
+        no-fail-on-empty-changeset: "1" # Note: "1" equals true
+        timeout-in-minutes: 10

@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  Repository:
+    Type: String
+    Description: Source Code Repository URL
+
+  OauthToken:
+    Type: String
+    Description: Source Code Repository OAuth Token
+    NoEcho: true
+
+  Domain:
+    Type: String
+    Description: Domain name to host application
+
+Resources:
+  WebsiteApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: AWSCostsWebsite
+      Repository: !Ref Repository
+      Description: AWS Costs Website
+      OauthToken: !Ref OauthToken
+      BuildSpec: |-
+        version: 0.1
+        frontend:
+          artifacts:
+            baseDirectory: source/
+            files:
+              - '*'
+      IAMServiceRole: !GetAtt AmplifyRole.Arn
+
+  MainBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      BranchName: main
+      AppId: !GetAtt WebsiteApp.AppId
+      EnableAutoBuild: true
+      Description: Main Branch
+
+  MainBranchDomain:
+    Type: AWS::Amplify::Domain
+    Properties:
+      DomainName: !Ref Domain
+      AppId: !GetAtt WebsiteApp.AppId
+      SubDomainSettings:
+        - Prefix: awscosts
+          BranchName: !GetAtt MainBranch.BranchName
+          
+  AmplifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - amplify.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: Amplify
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: "amplify:*"
+                Resource: "*"
+
+Outputs:
+  MainBranchUrl:
+    Value: !Join [ ".", [ !GetAtt MainBranch.BranchName, !GetAtt MainBranchDomain.DomainName ]]
